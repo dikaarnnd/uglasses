@@ -4,6 +4,7 @@ import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import MainCamera from './Camera';
+import MainCamera2 from './Camera2';
 
 type ScreenContentProps = {
   title: string;
@@ -43,6 +44,7 @@ export const ScreenContent = ({ title, path, children }: ScreenContentProps) => 
           <View className="flex-1 mt-4 rounded-xl overflow-hidden bg-black">
             <View className="flex-1 relative"> 
               <MainCamera />
+              {/* <MainCamera2 /> */}
 
               {/* Kontrol Kamera */}
               <View className="absolute bottom-5 w-full flex-row justify-center items-center gap-5">

@@ -1,80 +1,115 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
-import { Text, View, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef, useState, memo } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
-// Gunakan dimensi layar untuk kalkulasi posisi
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SERVER_IP = process.env.EXPO_PUBLIC_SERVER_IP_ADDRESS; // Pastikan IP sesuai dengan laptop Anda
-const WS_URL = `ws://${SERVER_IP}:8000/ws`;
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const WS_URL = `ws://${process.env.EXPO_PUBLIC_SERVER_IP_ADDRESS}:8000/ws`;
 
-const StaticCamera = memo(({ cameraRef, onReady }: any) => (
+/* =========================
+   CAMERA PREVIEW (STATIS)
+========================= */
+const StaticCamera = memo(({ camRef, onReady }: any) => (
   <CameraView
+    ref={camRef}
     style={StyleSheet.absoluteFillObject}
-    ref={cameraRef}
     facing="back"
+    animateShutter={false}   // ⛔ MATIKAN KEDIP
     onCameraReady={onReady}
-    animateShutter={false} // Mengurangi flicker tambahan
   />
 ));
 
 export default function MainCamera() {
   const [permission, requestPermission] = useCameraPermissions();
   const [isConnected, setIsConnected] = useState(false);
-  const [detections, setDetections] = useState([]);
-  
-  const cameraRef = useRef<CameraView>(null);
+  const camRef = useRef<CameraView>(null);
   const ws = useRef<WebSocket | null>(null);
-  
+
   const isProcessing = useRef(false);
   const isCameraReady = useRef(false);
 
-  // 1. WebSocket Management
+  const [detections, setDetections] = useState<any[]>([]);
+  const [frameSize, setFrameSize] = useState({ w: 1, h: 1 });
+  const [lastFrameTime, setLastFrameTime] = useState(Date.now());
+
+  /* =========================
+     WEBSOCKET
+  ========================= */
   useEffect(() => {
     const connect = () => {
       ws.current = new WebSocket(WS_URL);
       ws.current.onopen = () => setIsConnected(true);
-      ws.current.onmessage = (e) => {
+      ws.current.onmessage = e => {
         const res = JSON.parse(e.data);
-        if (res.detections) setDetections(res.detections);
+  
+        setLastFrameTime(Date.now());
+        setDetections(res.detections || []);
         isProcessing.current = false;
       };
       ws.current.onclose = () => {
         setIsConnected(false);
         setTimeout(connect, 3000); // Reconnect otomatis
       };
-    };
+    }
     connect();
     return () => ws.current?.close();
   }, []);
 
-  // 2. Optimized Frame Loop
+  /* =========================
+     FRAME LOOP (ANTI KEDIP)
+  ========================= */
   useEffect(() => {
     const timer = setInterval(async () => {
+      if (
+        !camRef.current ||
+        !isCameraReady.current ||
+        isProcessing.current ||
+        ws.current?.readyState !== WebSocket.OPEN
+      ) return;
+
       if (isConnected && isCameraReady.current && !isProcessing.current) {
-        if (cameraRef.current && ws.current?.readyState === WebSocket.OPEN) {
+        if (camRef.current && ws.current?.readyState === WebSocket.OPEN) {
           isProcessing.current = true;
           try {
-            const photo = await cameraRef.current.takePictureAsync({
-              quality: 0.1, // Sangat rendah agar cepat dikirim
+            const photo = await camRef.current.takePictureAsync({
+              quality: 0.7,       // 🔥 RENDAH = STABIL
               base64: true,
               skipProcessing: true,
             });
+    
             if (photo?.base64) {
+              setFrameSize({ w: photo.width, h: photo.height });
               ws.current.send(photo.base64);
             } else {
               isProcessing.current = false;
             }
-          } catch (e) {
+          } catch {
             isProcessing.current = false;
           }
         }
       }
-    }, 450); // Interval sedikit dilonggarkan untuk stabilitas
+    }, 450); // ⏱️ JANGAN TERLALU CEPAT
+
     return () => clearInterval(timer);
   }, [isConnected]);
 
+  /* =========================
+     AUTO CLEAR BOX
+  ========================= */
+  useEffect(() => {
+    const cleaner = setInterval(() => {
+      if (Date.now() - lastFrameTime > 600) {
+        setDetections([]);
+      }
+    }, 300);
+
+    return () => clearInterval(cleaner);
+  }, [lastFrameTime]);
+
+  const scaleX = SCREEN_W / frameSize.w;
+  const scaleY = SCREEN_H / frameSize.h;
+
   if (!permission) return <View style={styles.base}><Text style={styles.text}>Mengecek izin...</Text></View>;
-  
+    
   if (!permission.granted) {
     return (
       <View style={styles.base}>
@@ -86,39 +121,32 @@ export default function MainCamera() {
   }
 
   return (
-    <View style={styles.container}>
-      <StaticCamera 
-        cameraRef={cameraRef} 
-        onReady={() => { isCameraReady.current = true; }} 
+    <View style={{ flex: 1, backgroundColor: 'black' }}>
+      <StaticCamera
+        camRef={camRef}
+        onReady={() => (isCameraReady.current = true)}
       />
 
-      {/* LAYER OVERLAY: pointerEvents="none" agar tombol di bawah tetap bisa diklik */}
-      <View style={styles.overlay} pointerEvents="none">
-        {detections.map((det: any, i) => {
-          const [x, y, w, h] = det.box;
-
-          // LOGIKA SCALING: 
-          // Pastikan pembagi (640) sesuai dengan resolusi resize di backend Anda
-          const mappedX = (x * SCREEN_WIDTH) / SCREEN_WIDTH;
-          const mappedY = (y * SCREEN_HEIGHT) / SCREEN_HEIGHT;
-          const mappedW = (w * SCREEN_WIDTH) / 640;
-          const mappedH = (h * SCREEN_HEIGHT) / 640;
-
-          return (
-            <View key={i} style={[styles.box, {
-              left: mappedX,
-              top: mappedY,
-              width: mappedW,
-              height: mappedH,
-            }]}>
-              <View style={styles.labelWrapper}>
-                <Text style={styles.label}>
-                  {det.class} {(det.confidence * 100).toFixed(0)}%
-                </Text>
-              </View>
-            </View>
-          );
-        })}
+      {/* ===== OVERLAY BOX ===== */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        {detections.map((det, i) => (
+          <View
+            key={`${det.class}-${det.box.join('-')}-${i}`}
+            style={[
+              styles.box,
+              {
+                left: det.box[0] * scaleX,
+                top: det.box[1] * scaleY,
+                width: det.box[2] * scaleX,
+                height: det.box[3] * scaleY,
+              },
+            ]}
+          >
+            <Text style={styles.label}>
+              {det.class} {(det.confidence * 100).toFixed(0)}%
+            </Text>
+          </View>
+        ))}
       </View>
 
       {/* INDIKATOR STATUS */}
