@@ -10,7 +10,7 @@ app = FastAPI()
 # =========================
 # KONFIGURASI YOLO11
 # =========================
-MODEL_PATH = "glassearch_backend\\best2.onnx"
+MODEL_PATH = "models\yolo11n.onnx"
 INPUT_WIDTH = 640
 INPUT_HEIGHT = 640
 CONF_THRESHOLD = 0.7   # Threshold keyakinan
