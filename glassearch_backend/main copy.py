@@ -109,50 +109,21 @@ def postprocess(outputs, orig_size, lb):
             boxes.append([x1, y1, int(real_w), int(real_h)])
             scores.append(conf)
 
-    # results = []
-    # if boxes:
-    #     # NMS: Jika ada banyak kotak di kacamata yang sama, pilih satu yang paling yakin
-    #     idxs = cv2.dnn.NMSBoxes(boxes, scores, CONF_THRESHOLD, NMS_THRESHOLD)
-    #     if len(idxs) > 0:
-    #         for i in idxs.flatten():
-    #             det = {
-    #                 "box": boxes[i], # Lokasi kotak
-    #                 "confidence": round(scores[i], 2), # Seberapa yakin AI
-    #                 "class": "kacamata" # Nama benda yang ditemukan
-    #             }
-    #             results.append(det)
-    #             print(f"👓 Detected: {det['class']} ({det['confidence']*100}%)")
-
-    # print(f"⏱️ Postprocess {time.time()-start_time:.3f}s | Found: {len(results)}")
-    # return results
-
-    # Ambil ukuran asli gambar dari parameter orig_size
-    orig_w, orig_h = orig_size 
-
     results = []
     if boxes:
+        # NMS: Jika ada banyak kotak di kacamata yang sama, pilih satu yang paling yakin
         idxs = cv2.dnn.NMSBoxes(boxes, scores, CONF_THRESHOLD, NMS_THRESHOLD)
         if len(idxs) > 0:
             for i in idxs.flatten():
-                # Ambil koordinat piksel absolut
-                x, y, w, h = boxes[i]
-                
-                # --- PERUBAHAN DI SINI: NORMALISASI ---
-                # Mengubah piksel menjadi rentang 0.0 - 1.0
-                norm_x = x / orig_w
-                norm_y = y / orig_h
-                norm_w = w / orig_w
-                norm_h = h / orig_h
-
                 det = {
-                    # Kirim koordinat ternormalisasi
-                    "box": [norm_x, norm_y, norm_w, norm_h], 
-                    "confidence": round(scores[i], 2),
-                    "class": "kacamata"
+                    "box": boxes[i], # Lokasi kotak
+                    "confidence": round(scores[i], 2), # Seberapa yakin AI
+                    "class": "kacamata" # Nama benda yang ditemukan
                 }
                 results.append(det)
                 print(f"👓 Detected: {det['class']} ({det['confidence']*100}%)")
 
+    print(f"⏱️ Postprocess {time.time()-start_time:.3f}s | Found: {len(results)}")
     return results
 
 # ==========================================================

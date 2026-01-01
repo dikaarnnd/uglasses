@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 // Tambahkan Vibration di sini
-import { View, Text, StyleSheet, TouchableOpacity, Vibration } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Vibration, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
 const StaticCamera = memo(({ camRef, onReady }: any) => (
@@ -19,6 +19,9 @@ export default function CameraScreen({ wsUrl }: any) {
   // Simpan status deteksi kacamata (true/false)
   const [isDetected, setIsDetected] = useState(false);
   const [lastFrameTime, setLastFrameTime] = useState(Date.now());
+  const [boxes, setBoxes] = useState<any[]>([]);
+  // const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+  const [layout, setLayout] = useState({ width: 0, height: 0 });
 
   const camRef = useRef<CameraView>(null);
   const ws = useRef<WebSocket | null>(null);
@@ -39,10 +42,12 @@ export default function CameraScreen({ wsUrl }: any) {
         // Logika Baru: Cek jika ada kacamata yang terdeteksi
         if (res.detections && res.detections.length > 0) {
           setIsDetected(true);
+          setBoxes(res.detections);
           // Getarkan HP selama 100ms saat terdeteksi
           Vibration.vibrate(100); 
         } else {
           setIsDetected(false);
+          setBoxes([]);
         }
         
         isProcessing.current = false;
@@ -106,8 +111,57 @@ export default function CameraScreen({ wsUrl }: any) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'black' }}>
+    <View 
+      style={{ flex: 1, backgroundColor: 'black' }}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setLayout({ width, height });
+      }}
+    >
       <StaticCamera camRef={camRef} onReady={() => (isCameraReady.current = true)} />
+      {boxes.map((det, index) => {
+        const [nx, ny, nw, nh] = det.box; // Ini adalah angka 0.0 - 1.0 dari server
+
+        const SCALE_FACTOR = 1.6; // (1.2 = +20%)
+        const OFFSET_X = 0.035;
+        const OFFSET_Y = 0;
+  
+        // Hitung lebar dan tinggi baru yang lebih besar
+        const enlargedW = nw * SCALE_FACTOR;
+        const enlargedH = nh * SCALE_FACTOR;
+
+        // Geser titik X dan Y agar kotak tetap berada di tengah objek setelah diperbesar
+        const adjustedX = (nx - (enlargedW - nw) / 2) + OFFSET_X;
+        const adjustedY = (ny - (enlargedH - nh) / 2) + OFFSET_Y;
+
+        const left = Math.round(adjustedX * layout.width);
+        const top = Math.round(adjustedY * layout.height);
+        const width = Math.round(enlargedW * layout.width);
+        const height = Math.round(enlargedH * layout.height);
+
+        return (
+          <View
+            key={index}
+            style={{
+              position: 'absolute',
+              borderColor: '#10b981',
+              borderWidth: 4,
+              borderRadius: 4,
+              // RUMUS UTAMA: Persentase dikali Ukuran Layar HP
+              left: left,
+              top: top,
+              width: width,
+              height: height,
+              zIndex: 10,
+            }}
+          >
+            <Text style={{ color: '#10b981', fontSize: 10, }}>
+              {/* {det.class} {Math.round(det.confidence * 100)}% */}
+              {Math.round(det.confidence * 100)}%
+            </Text>
+          </View>
+        );
+      })}
       <View style={styles.statusWrap}>
         {/* INDIKATOR LAMPU */}
         <View 
