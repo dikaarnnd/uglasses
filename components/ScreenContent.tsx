@@ -5,6 +5,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // import { useNavigation } from '@react-navigation/native';
 
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Entypo from '@expo/vector-icons/Entypo';
+
 import CameraScreen from './Camera';
 import CameraScreen2 from './Camera2';
 import ServerConfig from './ServerConfig';
@@ -21,9 +25,10 @@ export default function ScreenContent ({ title, children }: ScreenContentProps) 
   const [cameraMode, setCameraMode] = useState<'back' | 'front'>('back');
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [page, setPage] = useState<'camera' | 'config' | 'manual'>('config');
-
   const toggleCamera = () => setShowCamera(!showCamera);
   // const switchCamera = () => setCameraMode(cameraMode === 'back' ? 'front' : 'back');
+  const primaryIconSize = 30;
+  const secondaryIconSize = 24;
 
   useEffect(() => {
     AsyncStorage.getItem('WS_URL').then(v => {
@@ -54,29 +59,42 @@ export default function ScreenContent ({ title, children }: ScreenContentProps) 
       <SafeAreaView className="flex-1 justify-between px-5 pb-2 bg-[#1E1E1E]">
         <View className='pt-8 gap-3'>
           <Text className='text-white text-3xl'>{title}</Text>
-          <Text className='text-white font-thin'>Detect and find your perfect glasses </Text>
+          <Text className='text-white font-thin'>Detect and find your glasses </Text>
         </View>
 
         {!showCamera && (
-          <View className="flex justify-between items-center gap-2">
-            <TouchableOpacity 
-              onPress={() => setPage('manual')}
-              className='flex items-center justify-center w-full bg-blue-500 py-3 rounded'
+          <View className="flex flex-row justify-evenly items-center gap-2">
+            <TouchableOpacity
+              onPress={() => setPage('manual')} 
+              activeOpacity={0.7}
+              className='p-3 rounded-full'
             >
-              <Text className='text-white text-lg font-semibold'>Manual</Text>
+              <MaterialCommunityIcons 
+                name="note-text-outline" 
+                size={secondaryIconSize} color="white" 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={toggleCamera} 
+              activeOpacity={0.7}
+              className='p-3 rounded-full bg-white'
+            >
+              <Entypo 
+                name="magnifying-glass" 
+                size={primaryIconSize} 
+                color="black" 
+              />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={toggleCamera}
-              className="flex flex-row w-full items-center justify-center gap-2 bg-blue-500 py-3 rounded"
+              onPress={() => setPage('config')} 
+              activeOpacity={0.7}
+              className='p-3 rounded-full'
             >
-              {/* <MaterialIcons name="camera" size={30} color="white" /> */}
-              <Text className="text-white text-lg font-semibold">Open Camera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setPage('config')}
-              className='flex items-center justify-center w-full bg-blue-500 py-3 rounded'
-            >
-              <Text className='text-white text-lg font-semibold'>Server</Text>
+              <AntDesign 
+                name="setting" 
+                size={secondaryIconSize} 
+                color="white" 
+              />
             </TouchableOpacity>
           </View>
         )}

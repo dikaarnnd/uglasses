@@ -21,12 +21,14 @@
       ]
     ],
     "orientation": "portrait",
-    "icon": "./assets/iwak.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff",
+      "android": { "resizeMode": "cover", "backgroundColor": "#ffffff" },
+      "ios": { "resizeMode": "cover", "backgroundColor": "#ffffff" }
     },
     "assetBundlePatterns": [
       "**/*"
@@ -39,7 +41,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/iwak.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [

@@ -6,7 +6,7 @@ import './global.css';
 export default function App() {
   return (
     <>
-      <ScreenContent title="Scan"></ScreenContent>
+      <ScreenContent title="Glassearch"></ScreenContent>
       <StatusBar style="auto" />
     </>
   );
