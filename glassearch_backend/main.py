@@ -1,12 +1,12 @@
 # ==========================================================
 # IMPORT LIBRARY: Mengambil alat-alat yang dibutuhkan
 # ==========================================================
-import cv2  # Library untuk mengolah gambar (resize, warna, gambar kotak)
-import numpy as np  # Untuk perhitungan matematika dan mengolah data angka (array)
-import onnxruntime as ort  # Mesin utama untuk menjalankan model kecerdasan buatan (AI)
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # Framework untuk membuat server web cepat
-import base64  # Untuk mengubah kode teks (Base64) dari HP kembali menjadi gambar asli
-import time  # Untuk menghitung berapa lama proses deteksi berjalan
+import cv2
+import numpy as np
+import onnxruntime as ort
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import base64
+import time
 
 app = FastAPI()  # Membuat aplikasi web utama
 
